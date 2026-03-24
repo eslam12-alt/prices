@@ -5,47 +5,92 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>أسعار أبو رشاد 📦</title>
     <style>
-        body { font-family: sans-serif; background-color: #f4f4f4; padding: 20px; text-align: center; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        input { width: 90%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 5px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; }
-        th { background: #27ae60; color: white; }
-        .price { color: #27ae60; font-weight: bold; }
+        :root { --primary: #2c3e50; --success: #27ae60; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 5px; }
+        .update-tag { text-align: center; font-size: 11px; color: #95a5a6; margin-bottom: 20px; }
+        input { width: 100%; padding: 15px; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; transition: 0.3s; text-align: right; }
+        input:focus { border-color: var(--success); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background-color: #f8f9fa; color: var(--primary); padding: 12px; border-bottom: 2px solid #eee; }
+        td { padding: 15px; border-bottom: 1px solid #f1f1f1; text-align: center; font-size: 1.1em; }
+        .price { color: var(--success); font-weight: bold; }
+        .loading { text-align: center; padding: 20px; color: #7f8c8d; font-style: italic; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>أسعار أبو رشاد 📦</h2>
-        <input type="text" id="search" onkeyup="filter()" placeholder="ابحث عن صنف...">
-        <table>
-            <thead><tr><th>الصنف</th><th>السعر</th></tr></thead>
-            <tbody id="body"></tbody>
-        </table>
-    </div>
-    <script>
-        const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRwBxUqDbgzeE93IYHwUGUo27pgip44SGe15eBdTx9MLPujPEkB6KbcDyfTEdHFP7F0WLdCztFLQtD7/pub?output=csv';
-        async function getData() {
-            const res = await fetch(url);
-            const text = await res.text();
-            const rows = text.split('\n').slice(1);
-            const tbody = document.getElementById('body');
+
+<div class="container">
+    <h2>أسعار أبو رشاد 📦</h2>
+    <div id="last-update" class="update-tag">جاري مزامنة الأسعار...</div>
+    
+    <input type="text" id="search" onkeyup="filterData()" placeholder="🔍 ابحث عن صنف...">
+
+    <div id="loader" class="loading">يتم الآن سحب أحدث الأسعار من الشيت...</div>
+    
+    <table id="priceTable" style="display: none;">
+        <thead>
+            <tr>
+                <th>الصنف</th>
+                <th>سعر البيع</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+
+<script>
+    // الرابط الفعلي لملف الـ CSV الخاص بك
+    const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRwBxUqDbgzeE93IYHwUGUo27pgip44SGe15eBdTx9MLPujPEkB6KbcDyfTEdHFP7F0WLdCztFLQtD7/pub?output=csv';
+
+    async function loadPrices() {
+        try {
+            const response = await fetch(sheetURL + '&cache-bust=' + Date.now()); // لتجنب الكاش القديم
+            const data = await response.text();
+            const rows = data.split('\n').filter(row => row.trim() !== "");
+            const tbody = document.getElementById('tableBody');
+            
             tbody.innerHTML = '';
-            rows.forEach(row => {
-                const cols = row.split(',');
-                if(cols[0]) {
+            // تخطي صف العناوين
+            rows.slice(1).forEach(row => {
+                // التقسيم بالفاصلة العادية أو المنقوطة للـ CSV العربي
+                let cols = row.includes(';') ? row.split(';') : row.split(',');
+                
+                if(cols[0] && cols[0].trim() !== "") {
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${cols[0]}</td><td class="price">${cols[2]} ج.م</td>`;
+                    const itemName = cols[0].replace(/"/g, '').trim();
+                    // محاولة جلب السعر من العمود الثالث (C) ثم الثاني (B) إذا كان الثالث فارغاً
+                    let priceValue = (cols[2] && cols[2].trim() !== "") ? cols[2] : cols[1];
+                    priceValue = priceValue ? priceValue.replace(/"/g, '').trim() : '---';
+                    
+                    tr.innerHTML = `<td>${itemName}</td><td class="price">${priceValue} ج.م</td>`;
                     tbody.appendChild(tr);
                 }
             });
+
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('priceTable').style.display = 'table';
+            document.getElementById('last-update').innerText = 'آخر تحديث: ' + new Date().toLocaleTimeString('ar-EG');
+            
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('loader').innerText = '❌ فشل في الاتصال بالبيانات';
         }
-        function filter() {
-            let val = document.getElementById('search').value.toLowerCase();
-            let trs = document.querySelectorAll('#body tr');
-            trs.forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none');
-        }
-        getData();
-    </script>
+    }
+
+    function filterData() {
+        let input = document.getElementById('search').value.toLowerCase();
+        let trs = document.querySelectorAll('#tableBody tr');
+        trs.forEach(r => r.style.display = r.innerText.toLowerCase().includes(input) ? '' : 'none');
+    }
+
+    // التشغيل عند الفتح
+    loadPrices();
+
+    // التحديث التلقائي كل دقيقة (60000 مللي ثانية)
+    setInterval(loadPrices, 60000);
+</script>
+
 </body>
 </html>
