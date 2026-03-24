@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أسعار أبو رشاد</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; }
+        input { width: 100%; padding: 12px; margin: 20px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
+        th { background-color: #27ae60; color: white; }
+        tr:hover { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>قائمة أسعار الوارد</h2>
+        <input type="text" id="search" onkeyup="filterData()" placeholder="ابحث عن صنف...">
+        <table id="priceTable">
+            <thead>
+                <tr>
+                    <th>الصنف</th>
+                    <th>السعر</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        // استبدل الرابط ده برابط الـ CSV اللي هتطلعه من Google Sheets (File -> Share -> Publish to web)
+        const sheetURL = 'حط_رابط_الـCSV_هنا';
+
+        async function loadPrices() {
+            const response = await fetch(sheetURL);
+            const data = await response.text();
+            const rows = data.split('\n').slice(1);
+            const tbody = document.getElementById('tableBody');
+            
+            rows.forEach(row => {
+                const cols = row.split(',');
+                if(cols[0]) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${cols[0]}</td><td>${cols[2]} ج.م</td>`; // بياخد العمود الأول والتالت (البيع)
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+
+        function filterData() {
+            let input = document.getElementById('search').value.toLowerCase();
+            let tr = document.querySelectorAll('#tableBody tr');
+            tr.forEach(r => {
+                r.style.display = r.innerText.toLowerCase().includes(input) ? '' : 'none';
+            });
+        }
+        loadPrices();
+    </script>
+</body>
+</html>
