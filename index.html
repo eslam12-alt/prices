@@ -6,15 +6,16 @@
     <title>إدارة أسعار أبو رشاد 📦</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --bg: #f4f7f6; --warning: #f39c12; }
-        body { font-family: sans-serif; background-color: var(--bg); margin: 0; padding: 10px; direction: rtl; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); margin: 0; padding: 10px; direction: rtl; }
         .container { max-width: 550px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .status { font-size: 13px; text-align: center; margin-bottom: 15px; font-weight: bold; color: #7f8c8d; }
         .admin-box { background: #ebf5fb; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #d6eaf8; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
+        button { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        button:hover { opacity: 0.8; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
-        th { background: var(--primary); color: white; }
+        th { background: var(--primary); color: white; border-radius: 5px; }
         .price-val { color: var(--success); font-weight: bold; }
         .btn-edit { background: var(--warning); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
 
@@ -27,73 +28,9 @@
 
 <div class="container">
     <h2 style="text-align: center;">إدارة أسعار أبو رشاد 📦</h2>
-    <div id="syncStatus" class="status">جاري التحقق من الاتصال...</div>
+    <div id="syncStatus" class="status">جاري الاتصال بقاعدة البيانات...</div>
     
     <div class="admin-box">
         <input type="text" id="addName" placeholder="اسم الصنف الجديد">
-        <input type="number" id="addPrice" placeholder="السعر">
-        <button onclick="handleData('add')">إضافة صنف جديد ➕</button>
-    </div>
-
-    <input type="text" id="search" onkeyup="filter()" placeholder="🔍 ابحث عن صنف لتعديله...">
-    
-    <table>
-        <thead><tr><th>الصنف</th><th>السعر</th><th>إجراء</th></tr></thead>
-        <tbody id="tableBody"></tbody>
-    </table>
-</div>
-
-<div id="modal">
-    <div class="modal-body">
-        <h3>تعديل سعر: <span id="editTarget"></span></h3>
-        <input type="number" id="editNewPrice" placeholder="السعر الجديد">
-        <button onclick="handleData('edit')">تأكيد وحفظ ✅</button>
-        <button onclick="closeModal()" style="background:#95a5a6; margin-top:8px;">إلغاء</button>
-    </div>
-</div>
-
-<script>
-    // الروابط المحدثة
-    const readURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRwBxUqDbgzeE93IYHwUGUo27pgip44SGe15eBdTx9MLPujPEkB6KbcDyfTEdHFP7F0WLdCztFLQtD7/pub?output=csv';
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbyTafZUjR8bui0CqRPQbqyGMmymRRULGWWOufi76wlrMUN5mXUrOX1pi5TcWCdvCU3W/exec';
-
-    let currentItem = "";
-
-    async function loadData() {
-        try {
-            const res = await fetch(`${readURL}&cb=${Date.now()}`);
-            const text = await res.text();
-            const rows = text.split('\n').filter(r => r.trim() !== "");
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
-
-            rows.slice(1).forEach(row => {
-                let cols = row.includes(';') ? row.split(';') : row.split(',');
-                let n = cols[0]?.replace(/"/g, '').trim();
-                let p = cols[1]?.replace(/"/g, '').trim();
-                if(n && n !== "الصنف") {
-                    tbody.innerHTML += `<tr>
-                        <td>${n}</td>
-                        <td class="price-val">${p} ج.م</td>
-                        <td><button class="btn-edit" onclick="openEdit('${n}', '${p}')">تعديل</button></td>
-                    </tr>`;
-                }
-            });
-            document.getElementById('syncStatus').innerText = "✅ البيانات متصلة ومحدثة";
-        } catch (e) { document.getElementById('syncStatus').innerText = "❌ خطأ في تحميل البيانات"; }
-    }
-
-    function openEdit(name, price) {
-        currentItem = name;
-        document.getElementById('editTarget').innerText = name;
-        document.getElementById('editNewPrice').value = price.replace(/[^0-9.]/g, '');
-        document.getElementById('modal').style.display = 'block';
-    }
-
-    function closeModal() { document.getElementById('modal').style.display = 'none'; }
-
-    async function handleData(type) {
-        let name = type === 'add' ? document.getElementById('addName').value : currentItem;
-        let price = type === 'add' ? document.getElementById('addPrice').value : document.getElementById('editNewPrice').value;
-        
-        if(!name ||
+        <input type="number" id="addPrice" placeholder="السعر (ج.م)">
+        <button onclick="handleData('add')">إضافة صنف جديد للشيت ➕</
