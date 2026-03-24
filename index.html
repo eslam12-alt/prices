@@ -6,57 +6,70 @@
     <title>إدارة أسعار أبو رشاد 📦</title>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --bg: #f4f7f6; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; direction: rtl; }
+        body { font-family: sans-serif; background-color: var(--bg); margin: 0; padding: 15px; direction: rtl; }
         .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         h2 { text-align: center; color: var(--primary); margin-bottom: 20px; }
-        
-        /* لوحة الإضافة */
         .admin-box { background: #e8f4f8; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #d1e9f0; }
-        .admin-box h4 { margin-top: 0; color: #2980b9; text-align: center; }
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
-        input:focus { border-color: var(--success); }
-        button { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        button { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         button:disabled { background: #bdc3c7; }
-
-        /* البحث والجدول */
-        .search-box { margin-top: 20px; position: relative; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
         th { background: var(--primary); color: white; }
-        .price { color: var(--success); font-weight: bold; font-size: 1.1em; }
-        .status { font-size: 12px; color: #666; margin-top: 10px; text-align: center; height: 15px; }
-        .last-sync { font-size: 10px; color: #95a5a6; text-align: center; margin-bottom: 10px; }
+        .price { color: var(--success); font-weight: bold; }
+        .status { font-size: 13px; color: #666; margin-top: 10px; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>إدارة أسعار أبو رشاد 📦</h2>
-    <div id="syncTime" class="last-sync">جاري المزامنة...</div>
+    <div id="syncStatus" class="status">جاري التحميل...</div>
     
     <div class="admin-box">
-        <h4>إضافة صنف جديد</h4>
-        <input type="text" id="itemName" placeholder="اسم الصنف (مثلاً: شوب مصري)">
-        <input type="number" id="itemPrice" placeholder="السعر (ج.م)">
+        <input type="text" id="itemName" placeholder="اسم الصنف الجديد">
+        <input type="number" id="itemPrice" placeholder="السعر">
         <button id="addBtn" onclick="sendData()">حفظ في جوجل شيت ➕</button>
-        <div id="status" class="status"></div>
     </div>
 
-    <div class="search-box">
-        <input type="text" id="search" onkeyup="filter()" placeholder="🔍 ابحث عن صنف موجود...">
-    </div>
+    <input type="text" id="search" onkeyup="filter()" placeholder="🔍 ابحث في القائمة...">
     
     <table>
-        <thead>
-            <tr>
-                <th>الصنف</th>
-                <th>السعر</th>
-            </tr>
-        </thead>
+        <thead><tr><th>الصنف</th><th>السعر</th></tr></thead>
         <tbody id="tableBody"></tbody>
     </table>
 </div>
 
 <script>
-    // روابط الربط الخاصة بك
-    const readURL = '
+    // ضع روابطك هنا
+    const readURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRwBxUqDbgzeE93IYHwUGUo27pgip44SGe15eBdTx9MLPujPEkB6KbcDyfTEdHFP7F0WLdCztFLQtD7/pub?output=csv';
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbz88X0tkqSfhuvFDRmAGmIzHt11LxnOj6-9BBNUCDlSI_PPTBubFr5jQ_j7Slix3ox2/exec';
+
+    // 1. إرسال البيانات
+    async function sendData() {
+        const name = document.getElementById('itemName').value;
+        const price = document.getElementById('itemPrice').value;
+        const btn = document.getElementById('addBtn');
+        const status = document.getElementById('syncStatus');
+
+        if(!name || !price) return alert("اكتب البيانات كاملة!");
+
+        btn.disabled = true;
+        status.innerText = "⏳ جاري الحفظ...";
+
+        try {
+            await fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ name: name, price: price })
+            });
+            status.innerText = "✅ تم الحفظ! جاري تحديث الجدول...";
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemPrice').value = '';
+            setTimeout(loadData, 3000); // تحديث بعد 3 ثوانٍ
+        } catch (e) {
+            status.innerText = "❌ خطأ في الإرسال";
+        } finally {
+            btn.disabled = false;
+        }
+    }
