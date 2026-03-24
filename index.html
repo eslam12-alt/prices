@@ -7,24 +7,22 @@
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --bg: #f4f7f6; }
         body { font-family: sans-serif; background-color: var(--bg); margin: 0; padding: 15px; direction: rtl; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        h2 { text-align: center; color: var(--primary); margin-bottom: 20px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        .status { font-size: 13px; text-align: center; margin-bottom: 15px; font-weight: bold; }
         .admin-box { background: #e8f4f8; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #d1e9f0; }
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
-        button { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        button:disabled { background: #bdc3c7; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        button { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
         th { background: var(--primary); color: white; }
         .price { color: var(--success); font-weight: bold; }
-        .status { font-size: 13px; color: #666; margin-top: 10px; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>إدارة أسعار أبو رشاد 📦</h2>
-    <div id="syncStatus" class="status">جاري التحميل...</div>
+    <h2 style="text-align: center;">إدارة أسعار أبو رشاد 📦</h2>
+    <div id="syncStatus" class="status" style="color: #e67e22;">⏳ جاري المزامنة...</div>
     
     <div class="admin-box">
         <input type="text" id="itemName" placeholder="اسم الصنف الجديد">
@@ -41,35 +39,57 @@
 </div>
 
 <script>
-    // ضع روابطك هنا
+    // الروابط بتاعتك جاهزة
     const readURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRwBxUqDbgzeE93IYHwUGUo27pgip44SGe15eBdTx9MLPujPEkB6KbcDyfTEdHFP7F0WLdCztFLQtD7/pub?output=csv';
     const scriptURL = 'https://script.google.com/macros/s/AKfycbz88X0tkqSfhuvFDRmAGmIzHt11LxnOj6-9BBNUCDlSI_PPTBubFr5jQ_j7Slix3ox2/exec';
 
-    // 1. إرسال البيانات
     async function sendData() {
         const name = document.getElementById('itemName').value;
         const price = document.getElementById('itemPrice').value;
-        const btn = document.getElementById('addBtn');
-        const status = document.getElementById('syncStatus');
-
-        if(!name || !price) return alert("اكتب البيانات كاملة!");
-
-        btn.disabled = true;
-        status.innerText = "⏳ جاري الحفظ...";
+        if(!name || !price) return alert("اكمل البيانات!");
+        
+        document.getElementById('addBtn').disabled = true;
+        document.getElementById('syncStatus').innerText = "⏳ جاري الإرسال...";
 
         try {
-            await fetch(scriptURL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify({ name: name, price: price })
-            });
-            status.innerText = "✅ تم الحفظ! جاري تحديث الجدول...";
+            await fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name, price }) });
             document.getElementById('itemName').value = '';
             document.getElementById('itemPrice').value = '';
-            setTimeout(loadData, 3000); // تحديث بعد 3 ثوانٍ
-        } catch (e) {
-            status.innerText = "❌ خطأ في الإرسال";
-        } finally {
-            btn.disabled = false;
-        }
+            setTimeout(loadData, 3000); 
+        } catch (e) { alert("خطأ في الاتصال"); }
+        finally { document.getElementById('addBtn').disabled = false; }
     }
+
+    async function loadData() {
+        try {
+            // كسر الكاش لضمان أحدث بيانات بعد النشر
+            const res = await fetch(`${readURL}&t=${Date.now()}`);
+            const text = await res.text();
+            const rows = text.split('\n').filter(r => r.trim() !== "");
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            rows.slice(1).forEach(row => {
+                let cols = row.includes(';') ? row.split(';') : row.split(',');
+                let name = cols[0]?.replace(/"/g, '').trim();
+                let price = cols[1]?.replace(/"/g, '').trim();
+                if(name && name !== "الصنف") {
+                    tbody.innerHTML += `<tr><td>${name}</td><td class="price">${price} ج.م</td></tr>`;
+                }
+            });
+            document.getElementById('syncStatus').innerText = "✅ متصل ومزامن الآن";
+            document.getElementById('syncStatus').style.color = "green";
+        } catch (e) { document.getElementById('syncStatus').innerText = "❌ فشل التحديث"; }
+    }
+
+    function filter() {
+        let val = document.getElementById('search').value.toLowerCase();
+        let trs = document.querySelectorAll('#tableBody tr');
+        trs.forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none');
+    }
+
+    loadData();
+    setInterval(loadData, 60000);
+</script>
+</body>
+</html>
