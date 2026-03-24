@@ -3,73 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>قائمة أسعار أبو رشاد</title>
+    <title>أسعار أبو رشاد 📦</title>
     <style>
-        :root { --primary-color: #2c3e50; --accent-color: #27ae60; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 15px; color: #333; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        h2 { text-align: center; color: var(--primary-color); margin-bottom: 5px; }
-        .subtitle { text-align: center; color: #7f8c8d; font-size: 0.9em; margin-bottom: 25px; }
-        .search-box { position: relative; margin-bottom: 20px; }
-        input { width: 100%; padding: 15px; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; transition: border-color 0.3s; text-align: right; }
-        input:focus { border-color: var(--accent-color); }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background-color: #f8f9fa; color: var(--primary-color); padding: 15px; border-bottom: 2px solid #eee; font-weight: bold; }
-        td { padding: 15px; border-bottom: 1px solid #f0f0f0; text-align: center; font-size: 1.1em; }
-        .price-tag { color: var(--accent-color); font-weight: bold; }
-        .loading { text-align: center; padding: 20px; color: #95a5a6; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover { background-color: #fdfdfd; }
+        body { font-family: sans-serif; background-color: #f4f4f4; padding: 20px; text-align: center; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        input { width: 90%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; }
+        th { background: #27ae60; color: white; }
+        .price { color: #27ae60; font-weight: bold; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h2>أسعار أبو رشاد 📦</h2>
-    <div class="subtitle">تحديث لحظي من جدول البيانات</div>
-    
-    <div class="search-box">
-        <input type="text" id="search" onkeyup="filterData()" placeholder="🔍 ابحث عن صنف (أطباق، بلانك... )">
+    <div class="container">
+        <h2>أسعار أبو رشاد 📦</h2>
+        <input type="text" id="search" onkeyup="filter()" placeholder="ابحث عن صنف...">
+        <table>
+            <thead><tr><th>الصنف</th><th>السعر</th></tr></thead>
+            <tbody id="body"></tbody>
+        </table>
     </div>
-
-    <div id="loader" class="loading">جاري تحميل الأسعار...</div>
-    
-    <table id="priceTable" style="display: none;">
-        <thead>
-            <tr>
-                <th>الصنف</th>
-                <th>سعر البيع</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
-</div>
-
-<script>
-    const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRwBxUqDbgzeE93IYHwUGUo27pgip44SGe15eBdTx9MLPujPEkB6KbcDyfTEdHFP7F0WLdCztFLQtD7/pub?output=csv';
-
-    async function loadPrices() {
-        try {
-            const response = await fetch(sheetURL);
-            const data = await response.text();
-            const rows = data.split('\n').filter(row => row.trim() !== "");
-            const tbody = document.getElementById('tableBody');
-            
-            // تخطي الصف الأول (العناوين) والبدء من الصف الثاني
-            const contentRows = rows.slice(1);
-            
+    <script>
+        const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRwBxUqDbgzeE93IYHwUGUo27pgip44SGe15eBdTx9MLPujPEkB6KbcDyfTEdHFP7F0WLdCztFLQtD7/pub?output=csv';
+        async function getData() {
+            const res = await fetch(url);
+            const text = await res.text();
+            const rows = text.split('\n').slice(1);
+            const tbody = document.getElementById('body');
             tbody.innerHTML = '';
-            contentRows.forEach(row => {
-                // التعامل مع الفاصلة العادية أو المنقوطة في الإكسيل العربي
-                const cols = row.includes(';') ? row.split(';') : row.split(',');
-                
-                if(cols[0] && cols[0].trim() !== "") {
+            rows.forEach(row => {
+                const cols = row.split(',');
+                if(cols[0]) {
                     const tr = document.createElement('tr');
-                    const itemName = cols[0].replace(/"/g, ''); // تنظيف النصوص من علامات التنصيص
-                    const price = cols[2] ? cols[2].replace(/"/g, '').trim() : '---';
-                    
-                    tr.innerHTML = `
-                        <td>${itemName}</td>
-                        <td class="price-tag">${price} ج.م</td>
-                    `;
+                    tr.innerHTML = `<td>${cols[0]}</td><td class="price">${cols[2]} ج.م</td>`;
                     tbody.appendChild(tr);
+                }
+            });
+        }
+        function filter() {
+            let val = document.getElementById('search').value.toLowerCase();
+            let trs = document.querySelectorAll('#body tr');
+            trs.forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none');
+        }
+        getData();
+    </script>
+</body>
+</html>
